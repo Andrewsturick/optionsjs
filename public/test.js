@@ -1,5 +1,83 @@
-/* Returns probability of occuring below and above target price. */
-function probability(price, target, days, volatility) {
+///////////////////////
+// EXPOSED FUNCTIONS
+// probability_above
+// probability_below
+// call_iv
+// fraction
+///////////////////////
+
+module.exports = {
+
+  // PROBABILITY ABOVE
+  // Returns probability of occuring above target price
+  probability_above: (price, target, days, volatility) => {
+    return probability(price, target, days, volatility)[1]
+  },
+
+  // PROBABILITY BELOW
+  // Returns probability of occuring below target price
+  probability_below: (price, target, days, volatility) => {
+    return probability(price, target, days, volatility)[0]
+  },
+
+  // CALL IV
+  // THIS NEEDS A DESCRIPTION
+  call_iv: (s,x,r,t,o) => {
+    return option_implied_volatility(true,s,x,r/100,t/365,o)
+  },
+
+  // FRACTION
+  // Returns a string with whole number (z) + fractional string
+  // i.e.  z = 4.375, return "4 3/8"
+  fraction: (z) => {
+    var whole = Math.floor(z)
+    var fract = z - whole
+    var thirtytwos = Math.round(fract*32)
+
+    // (if fraction is < 1/64)
+    if (thirtytwos == 0) {
+      return whole + " "
+    }
+
+    // (if fraction is > 63/64)
+    if (thirtytwos == 32) {
+      return whole + 1
+    }
+
+    // 32's non-trivial denominators: 2,4,8,16
+    if (thirtytwos/16 == 1) {
+      return whole + " 1/2"
+    }
+    if (thirtytwos/8 == 1) {
+      return whole + " 1/4"
+    }
+    if (thirtytwos/8 == 3) {
+      return whole + " 3/4"
+    }
+    if (thirtytwos/4 == Math.floor(thirtytwos/4)) {
+      return whole + " " + thirtytwos/4 + "/8"
+    }
+
+    if (thirtytwos/2 == Math.floor(thirtytwos/2)) {
+      return whole + " " + thirtytwos/2 + "/16"
+    }
+    else {
+      return whole + " " + thirtytwos + "/32"
+    }
+  },
+}
+
+////////////////////////////////
+// NOT EXPOSED FUNCTIONS
+// probability
+// ndist
+// N
+// black_scholes
+// option_implied_volatility
+////////////////////////////////
+
+// PROBABILITY
+var probability = function(price, target, days, volatility) {
 
   var p = price;
   var q = target;
@@ -29,20 +107,14 @@ function probability(price, target, days, volatility) {
   return [pbelow,pabove];
 }
 
-function probability_above(price, target, days, volatility) {
-  return probability(price, target, days, volatility)[1];
-}
-
-function probability_below(price, target, days, volatility) {
-  return probability(price, target, days, volatility)[0];
-}
-
-function ndist(z) {
+// NDIST
+var ndist = fucntion(z) {
   return (1.0/(Math.sqrt(2*Math.PI)))*Math.exp(-0.5*z);
   //??  Math.exp(-0.5*z*z)
 }
 
-function N(z) {
+// N
+var N = function(z) {
   b1 =  0.31938153;
   b2 = -0.356563782;
   b3 =  1.781477937;
@@ -60,35 +132,14 @@ function N(z) {
   return n;
 }
 
-function fraction(z) {
-// given a decimal number z, return a string with whole number + fractional string
-// i.e.  z = 4.375, return "4 3/8"
+// BLACK SCHOLES
+var black_scholes = function(call,S,X,r,v,t) {
+  // call = Boolean (to calc call, call=True, put: call=false)
+  // S = stock prics, X = strike price, r = no-risk interest rate
+  // v = volitility (1 std dev of S for (1 yr? 1 month?, you pick)
+  // t = time to maturity
 
-  var whole = Math.floor(z);
-  var fract = z - whole;
-  var thirtytwos = Math.round(fract*32);
-  if (thirtytwos == 0) {return whole + " ";}  //(if fraction is < 1/64)
-  if (thirtytwos == 32) {return whole + 1;}  //(if fraction is > 63/64)
-
-//32's non-trivial denominators: 2,4,8,16
-  if (thirtytwos/16 == 1) { return whole + " 1/2";}
-
-  if (thirtytwos/8 == 1) { return whole + " 1/4";}
-  if (thirtytwos/8 == 3) { return whole + " 3/4";}
-
-  if (thirtytwos/4 == Math.floor(thirtytwos/4)) {return whole + " " + thirtytwos/4 + "/8";}
-
-  if (thirtytwos/2 == Math.floor(thirtytwos/2)) {return whole + " " + thirtytwos/2 + "/16";}
-    else return whole + " " + thirtytwos + "/32";
-
-} //end function
-function black_scholes(call,S,X,r,v,t) {
-// call = Boolean (to calc call, call=True, put: call=false)
-// S = stock prics, X = strike price, r = no-risk interest rate
-// v = volitility (1 std dev of S for (1 yr? 1 month?, you pick)
-// t = time to maturity
-
-// define some temp vars, to minimize function calls
+  // define some temp vars, to minimize function calls
   var sqt = Math.sqrt(t);
   var Nd2;  //N(d2), used often
   var nd1;  //n(d1), also used often
@@ -115,16 +166,16 @@ function black_scholes(call,S,X,r,v,t) {
   rho = X*t*ert*Nd2;
 
   return ( S*delta-X*ert *Nd2);
+}
 
-} //end of black_scholes
+// OPTION IMPLIED VOLOATILITY
+var option_implied_volatility = function(call,S,X,r,t,o) {
+  // call = Boolean (to calc call, call=True, put: call=false)
+  // S = stock prics, X = strike price, r = no-risk interest rate
+  // t = time to maturity
+  // o = option price
 
-function option_implied_volatility(call,S,X,r,t,o) {
-// call = Boolean (to calc call, call=True, put: call=false)
-// S = stock prics, X = strike price, r = no-risk interest rate
-// t = time to maturity
-// o = option price
-
-// define some temp vars, to minimize function calls
+  // define some temp vars, to minimize function calls
   sqt = Math.sqrt(t);
   MAX_ITER = 100;
   ACC = 0.0001;
@@ -140,7 +191,4 @@ function option_implied_volatility(call,S,X,r,t,o) {
   }
   return "Error, failed to converge";
 
-} //end of option_implied_volatility
-
-function call_iv(s,x,r,t,o) { return option_implied_volatility(true,s,x,r/100,t/365,o)}
-console.log(call_iv(105.25, 105.71, 3, 14, 1.84 ))
+}
